@@ -263,10 +263,14 @@ module Relations where
   to zero = ⟨⟩ O 
   to (suc n) = inc ((to n))
 
+  double : ℕ → ℕ
+  double zero = zero
+  double (suc n) = suc (suc (double n))
+
   from : Bin → ℕ
   from ⟨⟩ = zero
-  from (b O) = (from b) + (from b)
-  from (b I) = suc ((from b) + (from b))
+  from (b O) = (double (from b))
+  from (b I) = suc (double (from b))
 
   nat-to-can : ∀ (n : ℕ) → Can (to n)
   nat-to-can zero = isZero
@@ -281,21 +285,37 @@ module Relations where
   suc->inc n = refl
 
   _bin-+_ : Bin → Bin → Bin
-  b bin-+ i = to ((from b) + (from i))
-  {- ⟨⟩ bin-+ n = n
+  ⟨⟩ bin-+ n = n
   b bin-+ ⟨⟩ = b
   (b O) bin-+ (n O) = (b bin-+ n) O
   (b O) bin-+ (n I) = (b bin-+ n) I
   (b I) bin-+ (n O) = (b bin-+ n) I
-  (b I) bin-+ (n I) = (inc (b bin-+ n)) O -}
+  (b I) bin-+ (n I) = (inc (b bin-+ n)) O 
+
+  bin-+-comm : ∀ (b i : Bin) → b bin-+ i ≡ i bin-+ b
+  bin-+-comm ⟨⟩ ⟨⟩ = refl
+  bin-+-comm ⟨⟩ (i O) = refl
+  bin-+-comm ⟨⟩ (i I) = refl
+  bin-+-comm (b O) ⟨⟩ = refl
+  bin-+-comm (b O) (i O) rewrite bin-+-comm b i = refl
+  bin-+-comm (b O) (i I) rewrite bin-+-comm b i = refl 
+  bin-+-comm (b I) ⟨⟩ = refl
+  bin-+-comm (b I) (i O) rewrite bin-+-comm b i = refl 
+  bin-+-comm (b I) (i I) rewrite bin-+-comm b i = refl
 
   inc-bin-+ʳ : ∀ (b i : Bin) → (inc b) bin-+ i ≡ inc (b bin-+ i) 
-  inc-bin-+ʳ ⟨⟩ i = refl
-  inc-bin-+ʳ (b O) i = refl
-  inc-bin-+ʳ (b I) i rewrite inc->suc (b I) = refl
+  inc-bin-+ʳ ⟨⟩ ⟨⟩ = refl
+  inc-bin-+ʳ ⟨⟩ (i O) = refl
+  inc-bin-+ʳ ⟨⟩ (i I) = refl
+  inc-bin-+ʳ (b O) ⟨⟩ = refl
+  inc-bin-+ʳ (b O) (i O) = refl
+  inc-bin-+ʳ (b O) (i I) = refl
+  inc-bin-+ʳ (b I) ⟨⟩ = refl
+  inc-bin-+ʳ (b I) (i O) rewrite inc-bin-+ʳ b i = refl
+  inc-bin-+ʳ (b I) (i I) rewrite inc-bin-+ʳ b i = refl
 
   inc-bin-+ˡ : ∀ (b i : Bin) → b bin-+ (inc i) ≡ inc (b bin-+ i) 
-  inc-bin-+ˡ b i rewrite +-comm (from b) (from (inc i)) | inc-bin-+ʳ i b | +-comm (from i) (from b) = refl
+  inc-bin-+ˡ b i rewrite bin-+-comm b (inc i) | inc-bin-+ʳ i b | bin-+-comm i b = refl
   
 
   to-bin-+ : ∀ (n : ℕ)
@@ -305,36 +325,27 @@ module Relations where
 
   b-bin-+-b : ∀ (b : Bin) → One b → (b bin-+ b) ≡ b O
   b-bin-+-b ⟨⟩ ()
-  b-bin-+-b (b O) (zeroNext o) rewrite to-bin-+ (from b + from b) | b-bin-+-b b o = {!!}
+  b-bin-+-b (b O) (zeroNext o) rewrite to-bin-+ (from b + from b) | b-bin-+-b b o = refl
   b-bin-+-b (.⟨⟩ I) isOne = refl
-  b-bin-+-b (b I) (oneNext o) rewrite +-comm (from b + from b) (suc (from b + from b)) | b-bin-+-b (b O) (zeroNext o) = refl
+  b-bin-+-b (b I) (oneNext o) rewrite +-comm (from b + from b) (suc (from b + from b)) | b-bin-+-b b o = refl
+  
+  double-eater : ∀ (n : ℕ) → to (double n) ≡ (to n) bin-+ (to n)
+  double-eater zero = refl
+  double-eater (suc n) rewrite double-eater n | sym (inc-bin-+ˡ (to n) (to n)) | sym (inc-bin-+ʳ (to n) (inc (to n))) = refl
 
-{-  b-bin-+-b ⟨⟩ ()
-  b-bin-+-b (b O) (zeroNext one) rewrite b-bin-+-b b one = {!!}
-  b-bin-+-b (.⟨⟩ I) isOne = refl
-  b-bin-+-b (b I) (oneNext one) rewrite b-bin-+-b b one = {!!}
--}
- 
   double-lem : ∀ (b : Bin)
     → One b
-    → to ((from b) + (from b)) ≡ b O
+    → to (double (from b)) ≡ b O
   double-lem ⟨⟩ ()
-  double-lem (b O) (zeroNext o)
-    rewrite to-bin-+ (from (b O))
-    | double-lem b o
-    | b-bin-+-b (b O) (zeroNext o) = refl
+  double-lem (b O) (zeroNext one) rewrite double-eater (double (from b)) | double-lem b one | b-bin-+-b b one =  refl
   double-lem (.⟨⟩ I) isOne = refl
-  double-lem (b I) (oneNext o)
-    rewrite +-comm (from b + from b) (suc (from b + from b))
-    | suc->inc zero | to-bin-+ (from b + from b)
-    | double-lem b o
-    | b-bin-+-b (b O) (zeroNext o) = refl
+  double-lem (b I) (oneNext one) rewrite double-eater (double (from b)) | double-lem b one | b-bin-+-b b one  = refl 
             
   to-from-one : ∀ {b : Bin}
         → One b
         → to (from b) ≡ b
   to-from-one isOne = refl
-  to-from-one (zeroNext {b} one) = double-lem b one
+  to-from-one (zeroNext {b} one) = double-lem b one 
   to-from-one (oneNext {b} one) rewrite double-lem b one = refl
      
   to-from-is : ∀ {b : Bin}
