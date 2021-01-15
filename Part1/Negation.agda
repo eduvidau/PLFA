@@ -5,7 +5,7 @@ open import Data.Nat using (ℕ; zero; suc; _≤_; _<_ ; s≤s ;z≤n)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Product using (_×_; _,_)
-open import Isomorphism using (_≃_; extensionality)
+open import Isomorphism using (_≃_; extensionality ; _≲_)
 
 ¬_ : Set → Set
 ¬ A = A → ⊥
@@ -99,15 +99,14 @@ tricho (suc n) (suc m) with (tricho n m)
     ; to∘from = λ{ (¬a , ¬b) → refl}
     } -}
 
-×-dual-⊎ : ∀{A B : Set} → ¬ (A × B) ≃ (¬ A) ⊎ (¬ B)
+×-dual-⊎ : ∀{A B : Set} → ¬ (A × B) ≲ (¬ A) ⊎ (¬ B)
 ×-dual-⊎ =
   record
-  { to = λ{ ¬a×b → inj₂ λ a → ¬a×b {!!}} --Not a
-  ; from = λ{ (inj₁ ¬a) (a , b) → ¬a a
-            ; (inj₂ ¬b) (a , b) → ¬b b}
-  ; from∘to = {!!}
-  ; to∘from = {!!}
-  }
+    { to = λ ¬a×b → inj₁ λ a → ¬a×b {!!}
+    ; from = λ{ (inj₁ ¬a) (a , b) → ¬a a
+              ; (inj₂ ¬b) (a , b) → ¬b b}
+    ; from∘to = {!!}
+    }
 
 Stable : Set → Set
 Stable A = ¬ ¬ A → A
@@ -118,3 +117,28 @@ Stable A = ¬ ¬ A → A
 ×-Stable : ∀{A B : Set} → Stable A → Stable B → Stable (A × B)
 ×-Stable sa sb ¬¬a×b = (sa λ {¬a → ¬¬a×b λ {(a , b) → ¬a a}}) , (sb λ {¬b → ¬¬a×b λ { (a , b) → ¬b b}})
                      
+postulate
+  em : ∀ {A : Set} → A ⊎ ¬ A
+
+em-irrefutable : ∀ {A : Set} → ¬ ¬ (A ⊎ ¬ A)
+em-irrefutable = λ k → k (inj₂ (λ a → k (inj₁ a)))
+
+record Classical (A B : Set) : Set where
+  field
+    EM : A ⊎ ¬ A → (¬ ¬ A → A) × (((A → B) → A) → A) × ((A → B) → ¬ A ⊎ B) × (¬ (¬ A × ¬ B) → A ⊎ B)
+    DNE : (¬ ¬ A → A) → (A ⊎ ¬ A) × (((A → B) → A) → A) × ((A → B) → ¬ A ⊎ B) × (¬ (¬ A × ¬ B) → A ⊎ B)
+    PL : (((A → B) → A) → A) → (A ⊎ ¬ A) × (¬ ¬ A → A) × ((A → B) → ¬ A ⊎ B) × (¬ (¬ A × ¬ B) → A ⊎ B)
+    IaD : ((A → B) → ¬ A ⊎ B) → (A ⊎ ¬ A) × (¬ ¬ A → A) × (((A → B) → A) → A) × (¬ (¬ A × ¬ B) → A ⊎ B)
+    DM : (¬ (¬ A × ¬ B) → A ⊎ B) → (A ⊎ ¬ A) × (¬ ¬ A → A) × (((A → B) → A) → A) × ((A → B) → ¬ A ⊎ B)
+open Classical
+
+class : ∀{A B : Set} → Classical A B
+class =
+  record
+    { EM = λ{ (inj₁ a) → (λ ¬¬a → a) , (λ _ → a) , (λ ab → inj₂ (ab a)) , λ _ → inj₁ a
+            ; (inj₂ ¬a) → (λ ¬¬a → ⊥-elim (¬¬a ¬a)) , (λ x → ⊥-elim (¬a (x (λ a → ⊥-elim (¬a a))))) , (λ _ → inj₁ ¬a) , λ ¬¬a×¬b → ⊥-elim (¬¬a×¬b (¬a , λ b → {!!})) }
+    ; DNE = λ ¬¬ArA → {!!} , {!!} , {!!} , {!!} 
+    ; PL = λ abaa → {!!} , {!!} , {!!} , {!!} 
+    ; IaD = λ ab¬a⊎b → {!!} , {!!} , {!!} , {!!} 
+    ; DM = λ ¬¬a×¬ba⊎b → {!!} , {!!} , {!!} , {!!} 
+    }
