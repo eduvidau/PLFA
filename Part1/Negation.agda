@@ -88,25 +88,36 @@ tricho (suc n) (suc m) with (tricho n m)
 ... | equal (¬n<m , n≡m , ¬m<n) = equal (tmp2 ¬n<m , cong suc n≡m , tmp2 ¬m<n)
 ... | flipped (¬n<m , ¬n≡m , m<n) = flipped (tmp2 ¬n<m , tmp1 ¬n≡m , s≤s m<n)
 
-{-⊎-dual-× : ∀{A B : Set} → ¬ (A ⊎ B) ≃ (¬ A) × (¬ B)
-⊎-dual-×  =
+⊎-dual-× : ∀{A B : Set} → ¬ (A ⊎ B) ≃ (¬ A) × (¬ B)
+⊎-dual-× {A} {B} =
   record
     { to = λ{ ¬a⊎b → (λ a → ¬a⊎b (inj₁ a)) , λ b → ¬a⊎b (inj₂ b)}
     ; from = λ{ (¬a , ¬b) (inj₁ a) → ¬a a
               ; (¬a , ¬b) (inj₂ b) → ¬b b}
-    ; from∘to = λ{ ¬a⊎b → assimilation ((λ { (¬a , ¬b) (inj₁ a) → ¬a a ; (¬a , ¬b) (inj₂ b) → ¬b b })
-                                          ((λ x → ¬a⊎b (inj₁ x)) , (λ x → ¬a⊎b (inj₂ x)))) ¬a⊎b}
+    ; from∘to = λ{ ¬a⊎b → assimilation {A ⊎ B} ((λ { (¬a , ¬b) (inj₁ a) → ¬a a
+                                                   ; (¬a , ¬b) (inj₂ b) → ¬b b })
+                                                ((λ x → ¬a⊎b (inj₁ x)) , (λ x → ¬a⊎b (inj₂ x))))
+                                                ¬a⊎b}
     ; to∘from = λ{ (¬a , ¬b) → refl}
-    } -}
+    } 
 
-×-dual-⊎ : ∀{A B : Set} → ¬ (A × B) ≲ (¬ A) ⊎ (¬ B)
+{- ×-dual-⊎ : ∀{A B : Set} → ¬ (A × B) ≲ (¬ A) ⊎ (¬ B)
 ×-dual-⊎ =
   record
-    { to = λ ¬a×b → inj₁ λ a → ¬a×b {!!}
+    { to = λ ¬A×B → inj₁ λ a → ⊥-elim (¬A×B {!!})
     ; from = λ{ (inj₁ ¬a) (a , b) → ¬a a
               ; (inj₂ ¬b) (a , b) → ¬b b}
     ; from∘to = {!!}
-    }
+    } -}
+
+×-dual-⊎ : ∀{A B : Set} → (¬ A) ⊎ (¬ B) ≲ ¬ (A × B)
+×-dual-⊎ =
+  record
+    { to = λ{ (inj₁ ¬a) (a , b) → ¬a a
+            ; (inj₂ ¬b) (a , b) → ¬b b }
+    ; from = λ{ x → {!!} }
+    ; from∘to = λ{ (inj₁ x) → {!!}
+                 ; (inj₂ y) → {!!} }}
 
 Stable : Set → Set
 Stable A = ¬ ¬ A → A
@@ -123,22 +134,48 @@ postulate
 em-irrefutable : ∀ {A : Set} → ¬ ¬ (A ⊎ ¬ A)
 em-irrefutable = λ k → k (inj₂ (λ a → k (inj₁ a)))
 
+EM : ∀{A : Set} → Set
+EM {A} = A ⊎ ¬ A
+
+NegNegElim : ∀{ A : Set} → Set
+NegNegElim {A} = ¬ ¬ A → A
+
+PL : ∀{A B : Set} → Set
+PL {A} {B} = ((A → B) → A) → A
+
+→as⊎ : ∀{A B : Set} → Set
+→as⊎ {A} {B} = (A → B) → ¬ A ⊎ B
+
+DM : ∀{A B : Set} → Set
+DM {A} {B} = ¬ (¬ A × ¬ B) → A ⊎ B
+
+
 record Classical (A B : Set) : Set where
   field
-    EM : A ⊎ ¬ A → (¬ ¬ A → A) × (((A → B) → A) → A) × ((A → B) → ¬ A ⊎ B) × (¬ (¬ A × ¬ B) → A ⊎ B)
-    DNE : (¬ ¬ A → A) → (A ⊎ ¬ A) × (((A → B) → A) → A) × ((A → B) → ¬ A ⊎ B) × (¬ (¬ A × ¬ B) → A ⊎ B)
-    PL : (((A → B) → A) → A) → (A ⊎ ¬ A) × (¬ ¬ A → A) × ((A → B) → ¬ A ⊎ B) × (¬ (¬ A × ¬ B) → A ⊎ B)
-    IaD : ((A → B) → ¬ A ⊎ B) → (A ⊎ ¬ A) × (¬ ¬ A → A) × (((A → B) → A) → A) × (¬ (¬ A × ¬ B) → A ⊎ B)
-    DM : (¬ (¬ A × ¬ B) → A ⊎ B) → (A ⊎ ¬ A) × (¬ ¬ A → A) × (((A → B) → A) → A) × ((A → B) → ¬ A ⊎ B)
+    EM' : EM {A} → NegNegElim {A} × PL {A} {B} × →as⊎ {A} {B} × DM {A} {B}
+    DNE : NegNegElim {A} → EM {A} × PL {A} {B} × →as⊎ {A} {B} × DM {A} {B}
+    PL' : PL {A} {B} → EM {A} × NegNegElim {A} × →as⊎ {A} {B} × DM {A} {B}
+    IaD : →as⊎ {A} {B} → EM {A} × NegNegElim {A} × PL {A} {B} × DM {A} {B}
+    DM' : DM {A} {B} → EM {A} × NegNegElim {A} × PL {A} {B} × →as⊎ {A} {B}
 open Classical
 
 class : ∀{A B : Set} → Classical A B
 class =
   record
-    { EM = λ{ (inj₁ a) → (λ ¬¬a → a) , (λ _ → a) , (λ ab → inj₂ (ab a)) , λ _ → inj₁ a
-            ; (inj₂ ¬a) → (λ ¬¬a → ⊥-elim (¬¬a ¬a)) , (λ x → ⊥-elim (¬a (x (λ a → ⊥-elim (¬a a))))) , (λ _ → inj₁ ¬a) , λ ¬¬a×¬b → ⊥-elim (¬¬a×¬b (¬a , λ b → {!!})) }
-    ; DNE = λ ¬¬ArA → {!!} , {!!} , {!!} , {!!} 
-    ; PL = λ abaa → {!!} , {!!} , {!!} , {!!} 
+    { EM' = λ{ (inj₁ a) → (λ ¬¬a → a)
+                        , (λ _ → a)
+                        , (λ ab → inj₂ (ab a))
+                        , λ _ → inj₁ a
+             ; (inj₂ ¬a) → (λ ¬¬a → ⊥-elim (¬¬a ¬a))
+                         , (λ x → ⊥-elim (¬a (x (λ a → ⊥-elim (¬a a)))))
+                         , (λ _ → inj₁ ¬a)
+                         , λ ¬¬a×¬b → ⊥-elim (¬¬a×¬b ((λ a → ¬a a)
+                                    , λ b → ⊥-elim (¬a {!!}))) }
+    ; DNE = λ ¬¬ArA → {!!}
+                    , {!!}
+                    , {!!}
+                    , {!!} 
+    ; PL' = λ abaa → {!!} , {!!} , {!!} , {!!} 
     ; IaD = λ ab¬a⊎b → {!!} , {!!} , {!!} , {!!} 
-    ; DM = λ ¬¬a×¬ba⊎b → {!!} , {!!} , {!!} , {!!} 
+    ; DM' = λ ¬¬a×¬ba⊎b → {!!} , {!!} , {!!} , {!!} 
     }
